@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Layer — Editor Network</title>
+
+<style>
+*{
+    box-sizing:border-box;
+}
+
+:root{
+    --bg:#f3f1ea;
+    --paper:#fbfaf6;
+    --paper2:#f7f5ef;
+    --line:#ddd9cf;
+    --text:#20211d;
+    --sub:#797b73;
+
+    --green:#627562;
+    --green-soft:#e4e9df;
+
+    --yellow:#d8b85f;
+    --yellow-soft:#f3ead1;
+
+    --red:#a9675f;
+}
+
+body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:
+        Pretendard,
+        "Noto Sans KR",
+        Arial,
+        sans-serif;
+}
+
+button,
+input,
+select{
+    font:inherit;
+}
+
+/* ----------------------------------
+    전체 구조
+---------------------------------- */
+
+.app{
+    display:grid;
+    grid-template-columns:220px 1fr 370px;
+    min-height:100vh;
+}
+
+/* ----------------------------------
+    LEFT
+---------------------------------- */
+
+.sidebar{
+    border-right:1px solid var(--line);
+    padding:28px 20px;
+    background:#eeece5;
+
+    position:sticky;
+    top:0;
+    height:100vh;
+}
+
+.brand{
+    font-family:Georgia, serif;
+    font-size:27px;
+    letter-spacing:-1px;
+    margin-bottom:44px;
+}
+
+.side-section{
+    margin-bottom:30px;
+}
+
+.side-title{
+    font-size:11px;
+    color:#98988f;
+    letter-spacing:1.3px;
+    margin-bottom:10px;
+}
+
+.side-item{
+    padding:9px 10px;
+    margin:3px 0;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:14px;
+}
+
+.side-item:hover{
+    background:#e3e0d7;
+}
+
+.side-item.active{
+    background:#dedbd1;
+    font-weight:600;
+}
+
+.network-state{
+    margin-top:35px;
+    border-top:1px solid var(--line);
+    padding-top:20px;
+}
+
+.network-row{
+    display:flex;
+    justify-content:space-between;
+    margin:10px 0;
+    font-size:12px;
+}
+
+.network-number{
+    font-weight:700;
+}
+
+/* ----------------------------------
+    MAIN
+---------------------------------- */
+
+main{
+    min-width:0;
+}
+
+.header{
+    padding:28px 35px 20px;
+    border-bottom:1px solid var(--line);
+    background:rgba(243,241,234,.94);
+    position:sticky;
+    top:0;
+    z-index:5;
+    backdrop-filter:blur(8px);
+}
+
+.header-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:20px;
+}
+
+h1{
+    margin:0;
+    font-family:Georgia, serif;
+    font-weight:500;
+    font-size:29px;
+}
+
+.subtitle{
+    margin-top:6px;
+    color:var(--sub);
+    font-size:13px;
+}
+
+.editor-status{
+    font-size:12px;
+    padding:8px 11px;
+    border:1px solid #c9cec2;
+    background:var(--green-soft);
+    border-radius:20px;
+}
+
+.filters{
+    display:flex;
+    gap:8px;
+    margin-top:23px;
+    flex-wrap:wrap;
+}
+
+.filter{
+    border:1px solid var(--line);
+    background:transparent;
+    padding:8px 12px;
+    border-radius:20px;
+    cursor:pointer;
+    font-size:12px;
+}
+
+.filter:hover{
+    background:#ebe8df;
+}
+
+.filter.active{
+    background:#2c302b;
+    color:white;
+    border-color:#2c302b;
+}
+
+/* ----------------------------------
+    FLOW
+---------------------------------- */
+
+.flow{
+    padding:22px 35px 6px;
+    display:flex;
+    gap:9px;
+    align-items:center;
+    color:#86867e;
+    font-size:11px;
+}
+
+.flow-node{
+    padding:7px 10px;
+    border:1px solid var(--line);
+    border-radius:20px;
+}
+
+.flow-node.on{
+    color:#334333;
+    background:var(--green-soft);
+}
+
+.flow-line{
+    width:25px;
+    height:1px;
+    background:#c8c5bb;
+}
+
+/* ----------------------------------
+    CUSTOMER GRID
+---------------------------------- */
+
+.workspace{
+    padding:22px 35px 60px;
+}
+
+.section-label{
+    font-size:12px;
+    color:#8b8b83;
+    margin-bottom:12px;
+}
+
+.customer-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(270px,1fr));
+    gap:13px;
+}
+
+.customer-card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px;
+    cursor:pointer;
+    transition:.18s;
+    position:relative;
+}
+
+.customer-card:hover{
+    transform:translateY(-2px);
+    border-color:#aaa89e;
+    box-shadow:0 5px 18px rgba(0,0,0,.035);
+}
+
+.customer-card.selected{
+    border:1.5px solid #677862;
+    box-shadow:0 0 0 2px #e2e7dd;
+}
+
+.topline{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+}
+
+.customer-name{
+    font-size:15px;
+    font-weight:700;
+}
+
+.match{
+    font-family:Georgia, serif;
+    font-size:16px;
+    color:var(--green);
+}
+
+.request{
+    margin-top:11px;
+    font-size:13px;
+    line-height:1.55;
+    min-height:42px;
+}
+
+.tags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:5px;
+    margin-top:14px;
+}
+
+.tag{
+    background:#efede7;
+    padding:5px 7px;
+    border-radius:5px;
+    font-size:10px;
+    color:#65665f;
+}
+
+.tag.urgent{
+    background:#f2e1de;
+    color:#915d55;
+}
+
+.tag.good{
+    background:var(--green-soft);
+    color:#526452;
+}
+
+.card-bottom{
+    margin-top:17px;
+    padding-top:13px;
+    border-top:1px solid #e5e2da;
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:8px;
+}
+
+.metric span{
+    display:block;
+}
+
+.metric-name{
+    font-size:9px;
+    color:#99988f;
+}
+
+.metric-value{
+    margin-top:3px;
+    font-size:12px;
+    font-weight:600;
+}
+
+.activity{
+    position:absolute;
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:#778a6f;
+    right:13px;
+    bottom:13px;
+}
+
+/* ----------------------------------
+    RIGHT PANEL
+---------------------------------- */
+
+.detail-panel{
+    border-left:1px solid var(--line);
+    background:#f7f5ef;
+    min-height:100vh;
+
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow:auto;
+}
+
+.empty-detail{
+    padding:60px 35px;
+    color:#99988e;
+    line-height:1.7;
+}
+
+.detail{
+    display:none;
+}
+
+.detail.show{
+    display:block;
+}
+
+.detail-header{
+    padding:30px;
+    border-bottom:1px solid var(--line);
+}
+
+.detail-small{
+    color:#909187;
+    font-size:11px;
+}
+
+.detail-title{
+    font-family:Georgia, serif;
+    margin-top:7px;
+    font-size:24px;
+}
+
+.detail-request{
+    margin-top:15px;
+    line-height:1.65;
+    font-size:13px;
+}
+
+.detail-body{
+    padding:25px 30px;
+}
+
+.block{
+    margin-bottom:27px;
+}
+
+.block-title{
+    color:#8c8c83;
+    font-size:10px;
+    letter-spacing:1px;
+    margin-bottom:10px;
+}
+
+.structure-line{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    margin:8px 0;
+    font-size:12px;
+}
+
+.structure-key{
+    width:75px;
+    color:#93938a;
+}
+
+.structure-value{
+    flex:1;
+}
+
+.score{
+    background:#ebe9e2;
+    height:5px;
+    border-radius:10px;
+    overflow:hidden;
+    margin-top:7px;
+}
+
+.score-inner{
+    height:100%;
+    background:#697a64;
+}
+
+.reason{
+    background:#eeece5;
+    padding:13px;
+    border-radius:8px;
+    font-size:12px;
+    line-height:1.6;
+}
+
+.action-area{
+    position:sticky;
+    bottom:0;
+    padding:15px 30px 25px;
+    background:linear-gradient(
+        transparent,
+        #f7f5ef 22%
+    );
+}
+
+.primary{
+    width:100%;
+    border:none;
+    background:#292d28;
+    color:white;
+    padding:13px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.primary:hover{
+    background:#111;
+}
+
+.secondary{
+    margin-top:7px;
+    width:100%;
+    border:1px solid var(--line);
+    background:transparent;
+    padding:11px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+/* ----------------------------------
+    QUEUE
+---------------------------------- */
+
+.queue{
+    margin-top:22px;
+    padding-top:22px;
+    border-top:1px solid var(--line);
+}
+
+.queue-item{
+    background:#ebe9e2;
+    padding:10px;
+    border-radius:7px;
+    margin-top:7px;
+    font-size:11px;
+
+    display:flex;
+    justify-content:space-between;
+}
+
+.queue-remove{
+    cursor:pointer;
+    color:#999;
+}
+
+/* ----------------------------------
+    RESPONSIVE
+---------------------------------- */
+
+@media(max-width:1100px){
+
+    .app{
+        grid-template-columns:180px 1fr 320px;
+    }
+
+}
+
+@media(max-width:850px){
+
+    .app{
+        display:block;
+    }
+
+    .sidebar{
+        display:none;
+    }
+
+    .detail-panel{
+        position:fixed;
+        right:0;
+        top:0;
+        width:90%;
+        max-width:390px;
+        z-index:20;
+        box-shadow:-10px 0 30px rgba(0,0,0,.09);
+
+        transform:translateX(100%);
+        transition:.2s;
+    }
+
+    .detail-panel.mobile-open{
+        transform:translateX(0);
+    }
+
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- LEFT NETWORK -->
+    <aside class="sidebar">
+
+        <div class="brand">Layer</div>
+
+        <div class="side-section">
+            <div class="side-title">EDITOR NETWORK</div>
+
+            <div class="side-item active">
+                열려 있는 작업
+            </div>
+
+            <div class="side-item">
+                내 선택 큐
+            </div>
+
+            <div class="side-item">
+                연결 중
+            </div>
+
+            <div class="side-item">
+                작업 중
+            </div>
+        </div>
+
+        <div class="side-section">
+
+            <div class="side-title">
+                VIEW
+            </div>
+
+            <div class="side-item">
+                전체 망
+            </div>
+
+            <div class="side-item">
+                내 전문영역
+            </div>
+
+            <div class="side-item">
+                새 고객
+            </div>
+
+        </div>
+
+        <div class="network-state">
+
+            <div class="side-title">
+                NETWORK STATE
+            </div>
+
+            <div class="network-row">
+                <span>열린 고객</span>
+                <span class="network-number">18</span>
+            </div>
+
+            <div class="network-row">
+                <span>활성 편집자</span>
+                <span class="network-number">43</span>
+            </div>
+
+            <div class="network-row">
+                <span>연결 중</span>
+                <span class="network-number">7</span>
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <!-- CENTER -->
+    <main>
+
+        <header class="header">
+
+            <div class="header-top">
+
+                <div>
+                    <h1>작업 탐색</h1>
+
+                    <div class="subtitle">
+                        지금 편집자망에 열려 있는 고객과 작업을 탐색합니다.
+                    </div>
+                </div>
+
+                <div class="editor-status">
+                    ● 작업 가능
+                </div>
+
+            </div>
+
+            <div class="filters">
+
+                <button class="filter active" data-filter="all">
+                    전체
+                </button>
+
+                <button class="filter" data-filter="wedding">
+                    웨딩
+                </button>
+
+                <button class="filter" data-filter="youtube">
+                    YouTube
+                </button>
+
+                <button class="filter" data-filter="short">
+                    숏폼
+                </button>
+
+                <button class="filter" data-filter="urgent">
+                    빠른 작업
+                </button>
+
+                <button class="filter" data-filter="high">
+                    높은 적합도
+                </button>
+
+            </div>
+
+        </header>
+
+
+        <!-- FLOW -->
+
+        <div class="flow">
+
+            <div class="flow-node">
+                고객 유입
+            </div>
+
+            <div class="flow-line"></div>
+
+            <div class="flow-node on">
+                편집자망 탐색
+            </div>
+
+            <div class="flow-line"></div>
+
+            <div class="flow-node">
+                상호 선택
+            </div>
+
+            <div class="flow-line"></div>
+
+            <div class="flow-node">
+                작업 연결
+            </div>
+
+        </div>
+
+
+        <section class="workspace">
+
+            <div class="section-label">
+                현재 열려 있는 작업 노드
+            </div>
+
+            <div class="customer-grid" id="customerGrid">
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- RIGHT DETAIL -->
+
+    <aside class="detail-panel" id="detailPanel">
+
+        <div class="empty-detail" id="emptyDetail">
+
+            작업 하나를 선택하세요.<br><br>
+
+            단순한 주문서가 아니라
+            고객의 의도, 자원, 일정과
+            편집자의 작업 방식이
+            얼마나 맞는지 확인합니다.
+
+        </div>
+
+
+        <div class="detail" id="detail">
+
+            <div class="detail-header">
+
+                <div class="detail-small">
+                    OPEN WORK NODE
+                </div>
+
+                <div class="detail-title" id="detailName">
+                </div>
+
+                <div class="detail-request" id="detailRequest">
+                </div>
+
+            </div>
+
+
+            <div class="detail-body">
+
+                <div class="block">
+
+                    <div class="block-title">
+                        WORK STRUCTURE
+                    </div>
+
+                    <div id="workStructure">
+                    </div>
+
+                </div>
+
+
+                <div class="block">
+
+                    <div class="block-title">
+                        MATCH
+                    </div>
+
+                    <div id="matchReason" class="reason">
+                    </div>
+
+                    <div class="score">
+
+                        <div
+                            class="score-inner"
+                            id="scoreInner">
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="block">
+
+                    <div class="block-title">
+                        CUSTOMER CONTEXT
+                    </div>
+
+                    <div id="context" class="reason">
+                    </div>
+
+                </div>
+
+
+                <div class="queue">
+
+                    <div class="block-title">
+                        MY SELECTION QUEUE
+                    </div>
+
+                    <div id="queueList">
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="action-area">
+
+                <button
+                    class="primary"
+                    id="selectButton">
+
+                    이 작업 가능성 열기
+
+                </button>
+
+                <button
+                    class="secondary">
+
+                    일단 지나가기
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </aside>
+
+</div>
+
+
+<script>
+
+/* ----------------------------------
+    DATA
+---------------------------------- */
+
+const customers = [
+
+{
+    id:1,
+
+    name:"민서 · 준호",
+
+    type:"wedding",
+
+    request:
+    "결혼식 전체 영상을 너무 웨딩영상처럼 만들기보다 친구들과 있었던 하루처럼 남기고 싶어요.",
+
+    budget:"45–60만",
+
+    deadline:"12일",
+
+    length:"8–10분",
+
+    match:96,
+
+    tags:[
+        "웨딩",
+        "스토리 편집",
+        "감정선"
+    ],
+
+    structure:{
+        "원본":"약 3시간 20분",
+        "결과물":"8–10분",
+        "화면비":"16:9",
+        "수정":"2회",
+        "음악":"편집자 제안 가능"
+    },
+
+    reason:
+    "자연스러운 스토리 편집과 인물 중심 구성 경험이 높은 편집자에게 적합합니다.",
+
+    context:
+    "전형적인 웨딩 하이라이트보다 친구들이 찍어준 영상과 현장 대화를 적극적으로 사용하고 싶어 합니다."
+},
+
+{
+    id:2,
+
+    name:"Studio Orbi",
+
+    type:"youtube",
+
+    request:
+    "건축 관련 인터뷰 영상입니다. 내용의 밀도를 유지하면서 지루하지 않게 정리할 편집자를 찾습니다.",
+
+    budget:"35만",
+
+    deadline:"7일",
+
+    length:"14분",
+
+    match:91,
+
+    tags:[
+        "YouTube",
+        "인터뷰",
+        "정보 밀도"
+    ],
+
+    structure:{
+        "원본":"58분",
+        "결과물":"12–16분",
+        "자막":"핵심 자막",
+        "수정":"1회",
+        "톤":"차분함"
+    },
+
+    reason:
+    "긴 대화에서 의미 단위를 추출하고 구조화하는 능력이 중요합니다.",
+
+    context:
+    "시청시간보다 전문성을 우선하며 과도한 효과나 예능식 편집은 원하지 않습니다."
+},
+
+{
+    id:3,
+
+    name:"한주연",
+
+    type:"short",
+
+    request:
+    "카페 브랜드 영상에서 15초짜리 숏폼 여러 개를 만들고 싶어요.",
+
+    budget:"28만",
+
+    deadline:"3일",
+
+    length:"15초 × 6",
+
+    match:88,
+
+    urgent:true,
+
+    tags:[
+        "숏폼",
+        "브랜드",
+        "빠른 작업"
+    ],
+
+    structure:{
+        "원본":"23분",
+        "결과물":"15초 × 6",
+        "플랫폼":"Instagram",
+        "수정":"1회",
+        "납기":"3일"
+    },
+
+    reason:
+    "짧은 시간 안에 시각적 포인트를 찾고 여러 버전을 만드는 편집자에게 적합합니다.",
+
+    context:
+    "브랜드 톤은 자연스럽고 따뜻한 느낌이며 과도하게 광고처럼 보이는 것은 피하고 싶어 합니다."
+},
+
+{
+    id:4,
+
+    name:"도윤",
+
+    type:"youtube",
+
+    request:
+    "혼자 개발한 서비스를 만드는 과정을 기록했습니다. 성공담보다 시행착오가 보였으면 좋겠습니다.",
+
+    budget:"50만",
+
+    deadline:"14일",
+
+    length:"18분",
+
+    match:94,
+
+    tags:[
+        "YouTube",
+        "다큐",
+        "개발"
+    ],
+
+    structure:{
+        "원본":"4시간 10분",
+        "결과물":"15–20분",
+        "자료":"화면 녹화 포함",
+        "수정":"2회",
+        "톤":"관찰형"
+    },
+
+    reason:
+    "시간 순서를 그대로 줄이는 것보다 사건과 실패 원인을 재구성할 수 있는 편집자에게 적합합니다.",
+
+    context:
+    "완성된 서비스 홍보보다는 제작 과정 자체를 하나의 이야기로 만들고 싶어 합니다."
+},
+
+{
+    id:5,
+
+    name:"서연 · 우진",
+
+    type:"wedding",
+
+    request:
+    "우리 둘이 어떻게 만났는지부터 결혼식까지 하나의 영상으로 연결하고 싶습니다.",
+
+    budget:"70–90만",
+
+    deadline:"20일",
+
+    length:"12분",
+
+    match:98,
+
+    tags:[
+        "웨딩",
+        "아카이브",
+        "스토리"
+    ],
+
+    structure:{
+        "자료":"사진 + 영상 143개",
+        "결과물":"약 12분",
+        "구간":"연애 → 여행 → 결혼",
+        "수정":"2회",
+        "음악":"3곡"
+    },
+
+    reason:
+    "자료가 다양한 대신 서사를 구성할 자유도가 매우 높은 작업입니다.",
+
+    context:
+    "학생 시절 사진, 카카오톡 캡처, 여행 영상과 결혼식 영상을 함께 사용하려 합니다."
+},
+
+{
+    id:6,
+
+    name:"MORI LAB",
+
+    type:"short",
+
+    request:
+    "서비스 기능 설명을 하지 않고 실제 사용하는 장면만으로 서비스가 이해되게 만들고 싶습니다.",
+
+    budget:"40만",
+
+    deadline:"6일",
+
+    length:"30초",
+
+    match:87,
+
+    tags:[
+        "브랜드",
+        "제품",
+        "숏폼"
+    ],
+
+    structure:{
+        "원본":"약 40분",
+        "결과물":"30초",
+        "텍스트":"최소",
+        "수정":"2회",
+        "플랫폼":"Web / SNS"
+    },
+
+    reason:
+    "설명 자막보다 화면의 순서만으로 의미를 만드는 편집 방식이 필요합니다.",
+
+    context:
+    "광고처럼 기능을 나열하는 방식 대신 사용자가 자연스럽게 행동하는 장면을 중심으로 원합니다."
+}
+
+];
+
+
+/* ----------------------------------
+    STATE
+---------------------------------- */
+
+let selectedCustomer = null;
+
+let queue = [];
+
+
+/* ----------------------------------
+    RENDER CARDS
+---------------------------------- */
+
+const grid =
+document.getElementById("customerGrid");
+
+
+function renderCustomers(list){
+
+    grid.innerHTML = "";
+
+    list.forEach(customer=>{
+
+        const card =
+        document.createElement("div");
+
+        card.className =
+        "customer-card";
+
+        card.dataset.id =
+        customer.id;
+
+        const tags =
+        customer.tags
+        .map(tag=>{
+
+            let className = "tag";
+
+            if(
+                tag.includes("빠른")
+            ){
+                className += " urgent";
+            }
+
+            if(
+                tag.includes("스토리")
+            ){
+                className += " good";
+            }
+
+            return `
+                <span class="${className}">
+                    ${tag}
+                </span>
+            `;
+
+        }).join("");
+
+
+        card.innerHTML = `
+
+            <div class="topline">
+
+                <div class="customer-name">
+                    ${customer.name}
+                </div>
+
+                <div class="match">
+                    ${customer.match}%
+                </div>
+
+            </div>
+
+
+            <div class="request">
+
+                ${customer.request}
+
+            </div>
+
+
+            <div class="tags">
+
+                ${tags}
+
+            </div>
+
+
+            <div class="card-bottom">
+
+                <div class="metric">
+                    <span class="metric-name">
+                        예산
+                    </span>
+
+                    <span class="metric-value">
+                        ${customer.budget}
+                    </span>
+                </div>
+
+
+                <div class="metric">
+                    <span class="metric-name">
+                        납기
+                    </span>
+
+                    <span class="metric-value">
+                        ${customer.deadline}
+                    </span>
+                </div>
+
+
+                <div class="metric">
+                    <span class="metric-name">
+                        결과물
+                    </span>
+
+                    <span class="metric-value">
+                        ${customer.length}
+                    </span>
+                </div>
+
+            </div>
+
+            <div class="activity"></div>
+
+        `;
+
+
+        card.onclick = () =>
+        openCustomer(customer);
+
+
+        grid.appendChild(card);
+
+    });
+
+}
+
+
+renderCustomers(customers);
+
+
+/* ----------------------------------
+    OPEN DETAIL
+---------------------------------- */
+
+function openCustomer(customer){
+
+    selectedCustomer =
+    customer;
+
+
+    document
+    .querySelectorAll(".customer-card")
+    .forEach(card=>{
+
+        card.classList.remove("selected");
+
+    });
+
+
+    const selectedCard =
+    document.querySelector(
+        `[data-id="${customer.id}"]`
+    );
+
+    if(selectedCard){
+
+        selectedCard
+        .classList
+        .add("selected");
+
+    }
+
+
+    document
+    .getElementById("emptyDetail")
+    .style.display =
+    "none";
+
+
+    document
+    .getElementById("detail")
+    .classList
+    .add("show");
+
+
+    document
+    .getElementById("detailPanel")
+    .classList
+    .add("mobile-open");
+
+
+    document
+    .getElementById("detailName")
+    .textContent =
+    customer.name;
+
+
+    document
+    .getElementById("detailRequest")
+    .textContent =
+    customer.request;
+
+
+    const structure =
+    document.getElementById(
+        "workStructure"
+    );
+
+
+    structure.innerHTML =
+    Object
+    .entries(customer.structure)
+    .map(([key,value])=>`
+
+        <div class="structure-line">
+
+            <div class="structure-key">
+                ${key}
+            </div>
+
+            <div class="structure-value">
+                ${value}
+            </div>
+
+        </div>
+
+    `)
+    .join("");
+
+
+    document
+    .getElementById("matchReason")
+    .textContent =
+    customer.reason;
+
+
+    document
+    .getElementById("context")
+    .textContent =
+    customer.context;
+
+
+    document
+    .getElementById("scoreInner")
+    .style.width =
+    customer.match + "%";
+
+
+    updateSelectButton();
+
+}
+
+
+/* ----------------------------------
+    FILTER
+---------------------------------- */
+
+document
+.querySelectorAll(".filter")
+.forEach(button=>{
+
+    button.addEventListener(
+        "click",
+        ()=>{
+
+            document
+            .querySelectorAll(".filter")
+            .forEach(b=>
+                b.classList.remove("active")
+            );
+
+
+            button
+            .classList
+            .add("active");
+
+
+            const type =
+            button.dataset.filter;
+
+
+            let result =
+            customers;
+
+
+            if(type === "wedding"){
+
+                result =
+                customers.filter(
+                    c=>c.type==="wedding"
+                );
+
+            }
+
+
+            if(type === "youtube"){
+
+                result =
+                customers.filter(
+                    c=>c.type==="youtube"
+                );
+
+            }
+
+
+            if(type === "short"){
+
+                result =
+                customers.filter(
+                    c=>c.type==="short"
+                );
+
+            }
+
+
+            if(type === "urgent"){
+
+                result =
+                customers.filter(
+                    c=>c.urgent
+                );
+
+            }
+
+
+            if(type === "high"){
+
+                result =
+                customers.filter(
+                    c=>c.match >= 94
+                );
+
+            }
+
+
+            renderCustomers(result);
+
+        }
+    );
+
+});
+
+
+/* ----------------------------------
+    QUEUE
+---------------------------------- */
+
+const selectButton =
+document.getElementById(
+    "selectButton"
+);
+
+
+selectButton.addEventListener(
+    "click",
+    ()=>{
+
+        if(!selectedCustomer){
+            return;
+        }
+
+
+        const exists =
+        queue.some(
+            c=>c.id === selectedCustomer.id
+        );
+
+
+        if(exists){
+
+            queue =
+            queue.filter(
+                c=>c.id !== selectedCustomer.id
+            );
+
+        }else{
+
+            queue.push(
+                selectedCustomer
+            );
+
+        }
+
+
+        renderQueue();
+
+        updateSelectButton();
+
+    }
+);
+
+
+function updateSelectButton(){
+
+    if(!selectedCustomer){
+        return;
+    }
+
+
+    const exists =
+    queue.some(
+        c=>c.id === selectedCustomer.id
+    );
+
+
+    selectButton.textContent =
+    exists
+    ? "선택 큐에서 제거"
+    : "이 작업 가능성 열기";
+
+}
+
+
+function renderQueue(){
+
+    const queueList =
+    document.getElementById(
+        "queueList"
+    );
+
+
+    if(queue.length === 0){
+
+        queueList.innerHTML = `
+            <div style="
+                font-size:11px;
+                color:#999;
+            ">
+                아직 선택한 작업이 없습니다.
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    queueList.innerHTML =
+    queue
+    .map(customer=>`
+
+        <div class="queue-item">
+
+            <span>
+                ${customer.name}
+            </span>
+
+            <span
+                class="queue-remove"
+                onclick="removeQueue(${customer.id})">
+
+                ×
+
+            </span>
+
+        </div>
+
+    `)
+    .join("");
+
+}
+
+
+function removeQueue(id){
+
+    queue =
+    queue.filter(
+        customer =>
+        customer.id !== id
+    );
+
+
+    renderQueue();
+
+    updateSelectButton();
+
+}
+
+
+renderQueue();
+
+</script>
+
+</body>
+</html>
